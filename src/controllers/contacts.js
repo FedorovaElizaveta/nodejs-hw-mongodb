@@ -6,9 +6,28 @@ import {
   patchContact,
   deleteContact,
 } from '../services/contacts.js';
+import { parsePaginationParams } from '../utilts/parsePaginationParams.js';
+import { parseSortParams } from '../utilts/parseSortParams.js';
+import { parseFilterParams } from '../utilts/parseFilterParams.js';
 
-export const getAllContactsController = async (req, res) => {
-  const contacts = await getAllContacts();
+export const getAllContactsController = async (req, res, next) => {
+  const { page, perPage } = parsePaginationParams(req.query);
+  const { sortBy, sortOrder } = parseSortParams(req.query);
+  const { contactType, isFavourite } = parseFilterParams(req.query);
+
+  const contacts = await getAllContacts({
+    page,
+    perPage,
+    sortBy,
+    sortOrder,
+    contactType,
+    isFavourite,
+  });
+
+  if (contacts.data.length === 0) {
+    next(createHttpError(404, 'No contacts found for your request'));
+    return;
+  }
 
   res.status(200).json({
     status: 200,
@@ -47,7 +66,7 @@ export const createContactController = async (req, res, next) => {
 
   res.status(201).json({
     status: 201,
-    message: 'Successfully created a student!',
+    message: 'Successfully created a contact!',
     data: newContact,
   });
 };
@@ -83,7 +102,7 @@ export const deleteContactController = async (req, res, next) => {
   const contact = await deleteContact(contactId);
 
   if (contact === null) {
-    next(createHttpError(404, 'Student not found'));
+    next(createHttpError(404, 'Contact not found'));
     return;
   }
 
