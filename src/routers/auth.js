@@ -5,9 +5,16 @@ import {
   loginController,
   refreshController,
   logoutController,
+  requestResetEmailController,
+  resetPasswordController,
 } from '../controllers/auth.js';
 import { validateBody } from '../middlewares/validateBody.js';
-import { registerSchema, loginSchema } from '../validation/auth.js';
+import {
+  registerSchema,
+  loginSchema,
+  resetEmailSchema,
+  resetPasswordSchema,
+} from '../validation/auth.js';
 
 const router = express.Router();
 const jsonParser = express.json();
@@ -29,5 +36,19 @@ router.post(
 router.post('/refresh', ctrlWrapper(refreshController));
 
 router.post('/logout', ctrlWrapper(logoutController));
+
+router.post(
+  '/send-reset-email',
+  jsonParser,
+  validateBody(resetEmailSchema),
+  ctrlWrapper(requestResetEmailController),
+);
+
+router.post(
+  '/reset-pwd',
+  jsonParser,
+  validateBody(resetPasswordSchema),
+  ctrlWrapper(resetPasswordController),
+);
 
 export default router;

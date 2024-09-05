@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+import path from 'node:path';
 import createHttpError from 'http-errors';
 import {
   getAllContacts,
@@ -9,6 +11,8 @@ import {
 import { parsePaginationParams } from '../utilts/parsePaginationParams.js';
 import { parseSortParams } from '../utilts/parseSortParams.js';
 import { parseFilterParams } from '../utilts/parseFilterParams.js';
+import { uploadToCloudinary } from '../utilts/uploadToCloudinary.js';
+import { env } from '../utilts/env.js';
 
 export const getAllContactsController = async (req, res, next) => {
   const userId = req.user._id;
@@ -57,6 +61,24 @@ export const getContactByIdController = async (req, res, next) => {
 };
 
 export const createContactController = async (req, res, next) => {
+  let photo = null;
+
+  if (typeof req.file !== 'undefined') {
+    if (env('ENABLE_CLOUDINARY') === 'true') {
+      const result = await uploadToCloudinary(req.file.path);
+      await fs.unlink(req.file.path);
+
+      photo = result.secure_url;
+    } else {
+      await fs.rename(
+        req.file.path,
+        path.resolve('src', 'public', 'avatars', req.file.filename),
+      );
+
+      photo = `http://localhost:3000/avatars/${req.file.filename}`;
+    }
+  }
+
   const contact = {
     name: req.body.name,
     phoneNumber: req.body.phoneNumber,
@@ -64,6 +86,7 @@ export const createContactController = async (req, res, next) => {
     isFavourite: req.body.isFavourite,
     contactType: req.body.contactType,
     userId: req.user._id,
+    photo,
   };
 
   const newContact = await createContact(contact);
@@ -76,6 +99,24 @@ export const createContactController = async (req, res, next) => {
 };
 
 export const patchContactController = async (req, res, next) => {
+  let photo = null;
+
+  if (typeof req.file !== 'undefined') {
+    if (env('ENABLE_CLOUDINARY') === 'true') {
+      const result = await uploadToCloudinary(req.file.path);
+      await fs.unlink(req.file.path);
+
+      photo = result.secure_url;
+    } else {
+      await fs.rename(
+        req.file.path,
+        path.resolve('src', 'public', 'avatars', req.file.filename),
+      );
+
+      photo = `http://localhost:3000/avatars/${req.file.filename}`;
+    }
+  }
+
   const { contactId } = req.params;
   const userId = req.user._id;
 
@@ -85,6 +126,7 @@ export const patchContactController = async (req, res, next) => {
     email: req.body.email,
     isFavourite: req.body.isFavourite,
     contactType: req.body.contactType,
+    photo,
   };
 
   const patchedContact = await patchContact(contactId, userId, contact);
