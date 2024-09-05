@@ -144,7 +144,7 @@ export const resetPassword = async (password, token) => {
       { password: hashedPassword },
     );
 
-    // await Session.findOneAndDelete({ userId: user._id });
+    await Session.findOneAndDelete({ userId: user._id });
   } catch (err) {
     if (err.name === 'TokenExpiredError' || err.name === 'JsonWebTokenError') {
       throw createHttpError(401, 'Token is expired or invalid.');
