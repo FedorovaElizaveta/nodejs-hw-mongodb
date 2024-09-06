@@ -5,7 +5,21 @@ import {
   logout,
   requestResetEmail,
   resetPassword,
+  registerOrLoginWithGoogle,
 } from '../services/auth.js';
+import { generateAuthUrl } from '../utilts/googleOAuth2.js';
+
+const createCookies = (res, session) => {
+  res.cookie('refreshToken', session.refreshToken, {
+    httpOnly: true,
+    expires: session.refreshTokenValidUntil,
+  });
+
+  res.cookie('sessionId', session._id, {
+    httpOnly: true,
+    expires: session.refreshTokenValidUntil,
+  });
+};
 
 export const registerController = async (req, res, next) => {
   const userData = {
@@ -28,15 +42,7 @@ export const loginController = async (req, res, next) => {
 
   const session = await login(email, password);
 
-  res.cookie('refreshToken', session.refreshToken, {
-    httpOnly: true,
-    expires: session.refreshTokenValidUntil,
-  });
-
-  res.cookie('sessionId', session._id, {
-    httpOnly: true,
-    expires: session.refreshTokenValidUntil,
-  });
+  createCookies(res, session);
 
   res.status(200).json({
     status: 200,
@@ -52,15 +58,7 @@ export const refreshController = async (req, res, next) => {
 
   const session = await refresh(sessionId, refreshToken);
 
-  res.cookie('refreshToken', session.refreshToken, {
-    httpOnly: true,
-    expires: session.refreshTokenValidUntil,
-  });
-
-  res.cookie('sessionId', session._id, {
-    httpOnly: true,
-    expires: session.refreshTokenValidUntil,
-  });
+  createCookies(res, session);
 
   res.status(200).json({
     status: 200,
@@ -105,5 +103,31 @@ export const resetPasswordController = async (req, res, next) => {
     status: 200,
     message: 'Password has been successfully reset.',
     data: {},
+  });
+};
+
+export const getOAuthURLController = async (req, res, next) => {
+  const url = generateAuthUrl();
+
+  res.status(200).json({
+    status: 200,
+    message: 'Successfully get Google OAuth URL',
+    data: { url },
+  });
+};
+
+export const confirmOauthController = async (req, res, next) => {
+  const { code } = req.body;
+
+  const session = await registerOrLoginWithGoogle(code);
+
+  createCookies(res, session);
+
+  res.send({
+    status: 200,
+    message: 'Login with Google completed',
+    data: {
+      accessToken: session.accessToken,
+    },
   });
 };
