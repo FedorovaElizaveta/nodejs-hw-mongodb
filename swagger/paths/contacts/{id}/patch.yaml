@@ -1,0 +1,87 @@
+tags:
+  - Contacts
+summary: Patch a contact
+operationId: patchContact
+description: 'Use this endpoint to patch a contact'
+security:
+  - bearerAuth: []
+parameters:
+  - in: path
+    name: id
+    required: true
+    schema:
+      type: string
+      example: 66d7a677430b976ad90d5d34
+requestBody:
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          name:
+            description: "Contact's name"
+            type: string
+            example: Jane Doe
+          phoneNumber:
+            description: "Contact's phone number"
+            type: string
+            example: '+380000000000'
+          email:
+            description: "Contact's email"
+            type: string
+            example: 'janedoe@gmail.com'
+          isFavourite:
+            description: 'Marker that indicates whether the contact is marked as favourite'
+            type: boolean
+            example: true
+          contactType:
+            description: "Contact's type"
+            type: string
+            enum: ['work', 'home', 'personal']
+            example: personal
+          photo:
+            description: "Contact's photo"
+            type: string
+            format: binary
+responses:
+  '200':
+    description: 'Patch a contact'
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: 'Successfully patched a contact!'
+            data:
+              $ref: ../../../components/schemas/contact.yaml
+  '401':
+    $ref: ../../../components/responses/401.yaml
+  '404':
+    description: 'Contact not found'
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 404
+            message:
+              type: string
+              example: 'Contact not found'
+            data:
+              type: object
+              example: {}

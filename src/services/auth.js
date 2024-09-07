@@ -15,6 +15,17 @@ import {
 } from '../constants/index.js';
 import { sendMail } from '../utilts/sendMail.js';
 import { env } from '../utilts/env.js';
+import { validateCode } from '../utilts/googleOAuth2.js';
+
+const createSession = (userId) => {
+  return Session.create({
+    userId: userId,
+    accessToken: crypto.randomBytes(30).toString('base64'),
+    refreshToken: crypto.randomBytes(30).toString('base64'),
+    accessTokenValidUntil: new Date(Date.now() + ACCESS_TOKEN_TTL),
+    refreshTokenValidUntil: new Date(Date.now() + REFRESH_TOKEN_TTL),
+  });
+};
 
 export const register = async (userData) => {
   const existingUser = await User.findOne({ email: userData.email });
@@ -46,13 +57,7 @@ export const login = async (email, password) => {
 
   await Session.deleteOne({ userId: existingUser._id });
 
-  return Session.create({
-    userId: existingUser._id,
-    accessToken: crypto.randomBytes(30).toString('base64'),
-    refreshToken: crypto.randomBytes(30).toString('base64'),
-    accessTokenValidUntil: new Date(Date.now() + ACCESS_TOKEN_TTL),
-    refreshTokenValidUntil: new Date(Date.now() + REFRESH_TOKEN_TTL),
-  });
+  return createSession(existingUser._id);
 };
 
 export const refresh = async (sessionId, refreshToken) => {
@@ -68,13 +73,7 @@ export const refresh = async (sessionId, refreshToken) => {
 
   await Session.deleteOne({ _id: sessionId });
 
-  return Session.create({
-    userId: session.userId,
-    accessToken: crypto.randomBytes(30).toString('base64'),
-    refreshToken: crypto.randomBytes(30).toString('base64'),
-    accessTokenValidUntil: new Date(Date.now() + ACCESS_TOKEN_TTL),
-    refreshTokenValidUntil: new Date(Date.now() + REFRESH_TOKEN_TTL),
-  });
+  return createSession(session.userId);
 };
 
 export const logout = async (sessionId) => {
@@ -152,4 +151,35 @@ export const resetPassword = async (password, token) => {
 
     throw err;
   }
+};
+
+export const registerOrLoginWithGoogle = async (code) => {
+  const ticket = await validateCode(code);
+
+  const payload = ticket.getPayload();
+
+  if (typeof payload === 'undefined') {
+    throw createHttpError(401, 'Unauthorized');
+  }
+
+  const user = await User.findOne({ email: payload.email });
+
+  const password = await bcrypt.hash(
+    crypto.randomBytes(30).toString('base64'),
+    10,
+  );
+
+  if (user === null) {
+    const createdUser = await User.create({
+      email: payload.email,
+      name: payload.name,
+      password,
+    });
+
+    return createSession(createdUser._id);
+  }
+
+  await Session.deleteOne({ userId: user._id });
+
+  return createSession(user._id);
 };
