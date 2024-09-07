@@ -13,6 +13,7 @@ tags:
     description: Auth operations.
 servers:
   - url: http://localhost:3000
+  - url: https://hw7-contacts-app.onrender.com
 paths:
   /contacts/{id}:
     get:
